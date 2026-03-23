@@ -7,17 +7,26 @@ client.on("error", (err) => console.log("Redis Client Error", err));
 
 await client.connect();
 
-const addTaskToQueue = async (task) => {
+const addTaskToQueue = async (task , queueName) => {
     try{
-        task.status = "queued";
-        await client.lPush("task_queue", JSON.stringify(task));
+        if(queueName === "task_queue"){
+            task.status = "queued";
+        }
+        await client.lPush(queueName, JSON.stringify(task));
     } catch (error) {
         console.error("Error adding task to queue:", error);
     }
 }
 const getTaskInfo = async (task_id) => {
     try{
-        const tasks = await client.lRange("task_queue", 0, -1);
+        let tasks = await client.lRange("task_queue", 0, -1);
+        for(let task of tasks){
+            const t = JSON.parse(task);
+            if(t.task_id === task_id){
+                return t;
+            }
+        } 
+        tasks = await client.lRange("completed_tasks", 0, -1);
         for(let task of tasks){
             const t = JSON.parse(task);
             if(t.task_id === task_id){

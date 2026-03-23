@@ -16,8 +16,8 @@ class task {
 }
 app.post("/tasks", (req, res) => {
 	try {
-		const { task_name, payload } = req.body;
-		if (!task_name) {
+		const { task_type, payload } = req.body;
+		if (!task_type) {
 			return res
 				.status(400)
 				.json({ message: "Task name and payload are required!" });
@@ -26,8 +26,8 @@ app.post("/tasks", (req, res) => {
 			return res.status(400).json({ message: "Payload must be an object!" });
 		}
 		!payload && (payload = {});
-		const t = new task(task_name, payload);
-		addTaskToQueue(t);
+		const t = new task(task_type, payload);
+		addTaskToQueue(t, "task_queue");
 		res.json({ message: "Task created!" });
 	} catch (err) {
 		console.error("Error adding task to queue:", err);
@@ -52,7 +52,7 @@ app.get("/task/:id", (req, res) => {
 });
 
 // {
-//     "task_name" : "send_email",
+//     "task_type" : "send_email",
 //     "payload" : {
 //         "to" : "shivanshu@gmail.com",
 //         "regards" : "shivanshu",
@@ -63,7 +63,7 @@ app.get("/task/:id", (req, res) => {
 // Example tasks for testing:
 // 1. Send Email
 // {
-//     "task_name": "send_email",
+//     "task_type": "send_email",
 //     "payload": {
 //         "to": "user@example.com",
 //         "subject": "Welcome!",
@@ -73,7 +73,7 @@ app.get("/task/:id", (req, res) => {
 
 // 2. Generate Report
 // {
-//     "task_name": "generate_report",
+//     "task_type": "generate_report",
 //     "payload": {
 //         "report_type": "monthly",
 //         "month": "January",
@@ -83,7 +83,7 @@ app.get("/task/:id", (req, res) => {
 
 // 3. Process Image
 // {
-//     "task_name": "process_image",
+//     "task_type": "process_image",
 //     "payload": {
 //         "image_url": "https://example.com/image.jpg",
 //         "filters": ["blur", "grayscale"]
@@ -92,7 +92,7 @@ app.get("/task/:id", (req, res) => {
 
 // 4. Send SMS
 // {
-//     "task_name": "send_sms",
+//     "task_type": "send_sms",
 //     "payload": {
 //         "phone": "+1234567890",
 //         "message": "Your OTP is 1234"
@@ -101,7 +101,7 @@ app.get("/task/:id", (req, res) => {
 
 // 5. Database Backup
 // {
-//     "task_name": "database_backup",
+//     "task_type": "database_backup",
 //     "payload": {
 //         "database": "main_db",
 //         "backup_type": "full"
@@ -110,7 +110,7 @@ app.get("/task/:id", (req, res) => {
 
 // 6. Send Notification
 // {
-//     "task_name": "send_notification",
+//     "task_type": "send_notification",
 //     "payload": {
 //         "user_id": "123",
 //         "title": "New Message",
@@ -120,7 +120,7 @@ app.get("/task/:id", (req, res) => {
 
 // 7. Video Transcoding
 // {
-//     "task_name": "video_transcode",
+//     "task_type": "video_transcode",
 //     "payload": {
 //         "video_id": "vid_456",
 //         "output_format": "mp4",
@@ -130,7 +130,7 @@ app.get("/task/:id", (req, res) => {
 
 // 8. Clean Cache
 // {
-//     "task_name": "clean_cache",
+//     "task_type": "clean_cache",
 //     "payload": {
 //         "cache_type": "redis",
 //         "pattern": "user:*"
@@ -139,7 +139,7 @@ app.get("/task/:id", (req, res) => {
 
 // 9. Send Webhook
 // {
-//     "task_name": "send_webhook",
+//     "task_type": "send_webhook",
 //     "payload": {
 //         "url": "https://webhook.example.com/callback",
 //         "event": "order_completed",
@@ -149,7 +149,7 @@ app.get("/task/:id", (req, res) => {
 
 // 10. Schedule Meeting
 // {
-//     "task_name": "schedule_meeting",
+//     "task_type": "schedule_meeting",
 //     "payload": {
 //         "title": "Team Standup",
 //         "time": "2024-01-15T10:00:00Z",
