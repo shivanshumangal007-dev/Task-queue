@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+#LiveExec table{
+    @apply w-full text-left border-collapse text-white;
+}
+#LiveExec{
+    @apply text-white w-[69%] bg-white/5 rounded p-5;     
+}
+#LiveExec table th{
+    @apply  bg-white/20 py-3 px-2 text-center text-[0.7rem] text-white/80 tracking-widest font-light uppercase;
+}
+#LiveExec table td{
+    @apply p-3 text-center py-7 border-b border-gray-600/50;
+}

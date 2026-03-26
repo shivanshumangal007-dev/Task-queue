@@ -20,8 +20,8 @@ const processTask = async (task) => {
     
     client.del("current_processing_task");
 
-	await addTaskToQueue(task, "completed_tasks");
 	task.status = "completed";
+	await addTaskToQueue(task, "completed_tasks");
 
 	console.log(`Task completed: ${task.task_type}`);
 };

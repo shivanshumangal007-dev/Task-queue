@@ -39,4 +39,28 @@ const getTaskInfo = async (task_id) => {
         return null;
     }
 }
-export { addTaskToQueue, getTaskInfo };
+
+const getNumberOfTasksInQueue = async () => {
+    try{
+        const queuedTask = await client.lLen("task_queue");
+        const completedTask = await client.lLen("completed_tasks");
+        const totalTask = queuedTask + completedTask;
+        return { queuedTask, completedTask , totalTask};
+    }catch (error) {
+        console.error("Error fetching number of tasks in queue:", error);
+        return null;
+    }
+}
+
+const getAlltasks = async () => {
+    try{
+        const queuedTasks = await client.lRange("task_queue", 0, -1);
+        const parsedQueuedTasks = queuedTasks.map((task) => JSON.parse(task));
+        return { tasks: parsedQueuedTasks };
+    }catch(error){
+        console.error("Error fetching all tasks:", error);
+        return null;
+    }
+}
+
+export { addTaskToQueue, getTaskInfo, getNumberOfTasksInQueue, getAlltasks };

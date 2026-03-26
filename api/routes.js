@@ -1,5 +1,10 @@
 import express from "express";
-import { addTaskToQueue, getTaskInfo } from "./redisclient.js";
+import {
+	addTaskToQueue,
+	getTaskInfo,
+	getNumberOfTasksInQueue,
+	getAlltasks,
+} from "./redisclient.js";
 import { v4 as uuidv4 } from "uuid";
 const app = express();
 app.get("/", (req, res) => {
@@ -28,7 +33,7 @@ app.post("/tasks", (req, res) => {
 		!payload && (payload = {});
 		const t = new task(task_type, payload);
 		addTaskToQueue(t, "task_queue");
-		res.json({ message: "Task created!" });
+		res.json({ message: "Task created!", task: t });
 	} catch (err) {
 		console.error("Error adding task to queue:", err);
 		return res.status(500).json({ message: "Internal Server Error" });
@@ -47,6 +52,29 @@ app.get("/task/:id", (req, res) => {
 		})
 		.catch((err) => {
 			console.error("Error fetching task info:", err);
+			res.status(500).json({ message: "Internal Server Error" });
+		});
+});
+
+app.get("/NumberOfTasks", (req, res) => {
+	getNumberOfTasksInQueue()
+		.then((taskCounts) => {
+			// console.log("Task counts:", taskCounts);
+			res.json(taskCounts);
+		})
+		.catch((err) => {
+			console.error("Error fetching number of tasks in queue:", err);
+			res.status(500).json({ message: "Internal Server Error" });
+		});
+});
+
+app.get("/getTasks", (req, res) => {
+	getAlltasks()
+		.then((tasks) => {
+			res.json(tasks);
+		})
+		.catch((err) => {
+			console.error("Error fetching all tasks:", err);
 			res.status(500).json({ message: "Internal Server Error" });
 		});
 });
