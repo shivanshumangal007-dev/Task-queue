@@ -6,7 +6,6 @@ import { apiClient } from "../utils/api";
 const InjectNewBox = ({
 	setTotaltask,
 	setQueuedTask,
-	setCompletedTask,
 	setTasks,
 }) => {
 	const [payloadType, setPayloadType] = useState("Send_SMS");

@@ -1,13 +1,18 @@
 {
 	"name": "task-queue",
 	"version": "1.0.0",
-	"description": "",
+	"description": "Redis-backed task queue with Express API, worker, and React dashboard",
 	"main": "server.js",
+	"type": "module",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
+		"test": "echo \"No tests configured yet\"",
 		"start": "node server.js",
 		"dev": "nodemon server.js",
-		"worker": "nodemon ./worker/worker.js"
+		"worker": "nodemon ./worker/worker.js",
+		"worker:start": "node ./worker/worker.js",
+		"frontend:dev": "npm --prefix ./frontend_for_task_queue run dev",
+		"frontend:build": "npm --prefix ./frontend_for_task_queue run build",
+		"frontend:lint": "npm --prefix ./frontend_for_task_queue run lint"
 	},
 	"author": "",
 	"license": "ISC",
@@ -17,5 +22,8 @@
 		"express": "^5.2.1",
 		"redis": "^5.11.0",
 		"uuid": "^13.0.0"
+	},
+	"devDependencies": {
+		"nodemon": "^3.1.10"
 	}
 }
