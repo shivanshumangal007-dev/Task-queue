@@ -79,12 +79,12 @@ Start frontend:
 
 ```json
 {
-  "task_type": "send_email",
-  "payload": {
-    "to": "user@example.com",
-    "subject": "Welcome",
-    "body": "Hello from Task Queue"
-  }
+	"task_type": "send_email",
+	"payload": {
+		"to": "user@example.com",
+		"subject": "Welcome",
+		"body": "Hello from Task Queue"
+	}
 }
 ```
 

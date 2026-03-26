@@ -3,11 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { apiClient } from "../utils/api";
 
-const InjectNewBox = ({
-	setTotaltask,
-	setQueuedTask,
-	setTasks,
-}) => {
+const InjectNewBox = ({ setTotaltask, setQueuedTask, setTasks }) => {
 	const [payloadType, setPayloadType] = useState("Send_SMS");
 	const [jsonConfig, setJsonConfig] = useState(
 		`{
@@ -27,7 +23,8 @@ const InjectNewBox = ({
 			.post("/tasks", {
 				task_type: payloadType,
 				payload: JSON.parse(jsonConfig),
-			}).then((response) => {
+			})
+			.then((response) => {
 				// console.log("Task committed successfully:", response.data.task);
 				const newtask = response.data.task;
 				setTasks((prevTasks) => [...prevTasks, newtask]);
