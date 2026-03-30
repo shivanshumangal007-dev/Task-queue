@@ -1,24 +1,32 @@
 import { createClient } from "redis";
 import { addTaskToQueue } from "../api/redisclient.js";
 
-
 const client = createClient();
 
 client.on("error", (err) => console.log("Redis Client Error", err));
 
 await client.connect();
 
-
 const processTask = async (task) => {
 	task.status = "processing";
-    client.set("current_processing_task", JSON.stringify(task));
+	client.set("current_processing_task", JSON.stringify(task));
 	console.log(
 		`Processing task: ${task.task_type} with payload:`,
 		task.payload,
 	);
-	await new Promise((resolve) => setTimeout(resolve, 16000));
-    
-    client.del("current_processing_task");
+	await new Promise((resolve, reject) => {
+		let ran = Math.floor(Math.random() * 10) + 1;
+		console.log("ran : ", ran);
+		if (ran > 7) {
+			client.del("current_processing_task");
+			task.status = "failed";
+			addTaskToQueue(task, "failed_tasks");
+			reject(new Error("Simulated task failure"));
+		}
+		setTimeout(resolve, 16000);
+	});
+
+	client.del("current_processing_task");
 
 	task.status = "completed";
 	await addTaskToQueue(task, "completed_tasks");
@@ -30,7 +38,11 @@ while (true) {
 	if (task) {
 		const t = JSON.parse(task.element);
 		console.log(`Received task: ${t.task_type} with payload:`, t.payload);
-		await processTask(t);
+		try {
+			await processTask(t);
+		} catch (error) {
+			console.log(`Error processing task ${t.task_id}:`, error.message);
+		}
 	} else {
 		console.log("No tasks in queue, waiting...");
 	}

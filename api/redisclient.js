@@ -33,6 +33,13 @@ const getTaskInfo = async (task_id) => {
                 return t;
             }
         } 
+        tasks = await client.lRange("failed_tasks", 0, -1);
+        for(let task of tasks){
+            const t = JSON.parse(task);
+            if(t.task_id === task_id){
+                return t;
+            }
+        } 
         return null;
     }catch (error) {
         console.error("Error fetching task info:", error);
@@ -44,8 +51,9 @@ const getNumberOfTasksInQueue = async () => {
     try{
         const queuedTask = await client.lLen("task_queue");
         const completedTask = await client.lLen("completed_tasks");
-        const totalTask = queuedTask + completedTask;
-        return { queuedTask, completedTask , totalTask};
+        const failedTask = await client.lLen("failed_tasks");
+        const totalTask = queuedTask + completedTask + failedTask;
+        return { queuedTask, completedTask, failedTask, totalTask };
     }catch (error) {
         console.error("Error fetching number of tasks in queue:", error);
         return null;
