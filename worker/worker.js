@@ -2,6 +2,8 @@ import { createClient } from "redis";
 import { addTaskToQueue } from "../api/redisclient.js";
 
 const client = createClient();
+const PROCESSING_DELAY_MS = Number(process.env.PROCESSING_DELAY_MS || 16000);
+const FAILURE_RATE = Number(process.env.FAILURE_RATE || 0.3);
 
 client.on("error", (err) => console.log("Redis Client Error", err));
 
@@ -9,24 +11,24 @@ await client.connect();
 
 const processTask = async (task) => {
 	task.status = "processing";
-	client.set("current_processing_task", JSON.stringify(task));
+	await client.set("current_processing_task", JSON.stringify(task));
 	console.log(
 		`Processing task: ${task.task_type} with payload:`,
 		task.payload,
 	);
 	await new Promise((resolve, reject) => {
-		let ran = Math.floor(Math.random() * 10) + 1;
-		console.log("ran : ", ran);
-		if (ran > 7) {
+		const shouldFail = Math.random() < FAILURE_RATE;
+		if (shouldFail) {
 			client.del("current_processing_task");
 			task.status = "failed";
 			addTaskToQueue(task, "failed_tasks");
 			reject(new Error("Simulated task failure"));
+			return;
 		}
-		setTimeout(resolve, 16000);
+		setTimeout(resolve, PROCESSING_DELAY_MS);
 	});
 
-	client.del("current_processing_task");
+	await client.del("current_processing_task");
 
 	task.status = "completed";
 	await addTaskToQueue(task, "completed_tasks");

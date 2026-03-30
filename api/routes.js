@@ -19,20 +19,18 @@ class task {
 		this.status = "";
 	}
 }
-app.post("/tasks", (req, res) => {
+app.post("/tasks", async (req, res) => {
 	try {
 		const { task_type, payload } = req.body;
 		if (!task_type) {
-			return res
-				.status(400)
-				.json({ message: "Task name and payload are required!" });
+			return res.status(400).json({ message: "task_type is required!" });
 		}
 		if (payload && typeof payload !== "object") {
 			return res.status(400).json({ message: "Payload must be an object!" });
 		}
-		!payload && (payload = {});
-		const t = new task(task_type, payload);
-		addTaskToQueue(t, "task_queue");
+		const normalizedPayload = payload ?? {};
+		const t = new task(task_type, normalizedPayload);
+		await addTaskToQueue(t, "task_queue");
 		res.json({ message: "Task created!", task: t });
 	} catch (err) {
 		console.error("Error adding task to queue:", err);

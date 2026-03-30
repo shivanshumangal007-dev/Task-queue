@@ -1,10 +1,10 @@
 # Task Queue
 
-A Redis-backed task queue system with:
+Redis-backed task queue with:
 
 - Express API for creating and querying tasks
-- Worker process for background task processing
-- React + Vite dashboard for live task visibility
+- Worker process for background processing
+- React + Vite dashboard for real-time visibility
 
 ## Tech Stack
 
@@ -12,70 +12,100 @@ A Redis-backed task queue system with:
 - Worker: Node.js, Redis blocking pop loop
 - Frontend: React, Vite, Axios, Tailwind CSS
 
-## Repository Structure
+## Project Structure
 
 - `server.js`: API server entry point
-- `api/routes.js`: task endpoints
-- `api/redisclient.js`: Redis queue helpers
-- `worker/worker.js`: background task processor
-- `frontend_for_task_queue/`: UI project
+- `api/routes.js`: HTTP routes for task creation and lookup
+- `api/redisclient.js`: Redis queue and read helpers
+- `worker/worker.js`: task consumer and simulator
+- `frontend_for_task_queue/`: dashboard app
 
 ## Prerequisites
 
 - Node.js 18+
 - npm 9+
-- Redis server running locally or remotely
+- Redis server (local or remote)
 
-## Setup
+## Quick Start
 
-1. Install backend dependencies:
-   - `npm install`
-2. Install frontend dependencies:
-   - `npm --prefix ./frontend_for_task_queue install`
-3. Create environment files:
-   - Copy `.env.example` to `.env`
-   - (Optional) Copy `frontend_for_task_queue/.env.example` to `frontend_for_task_queue/.env`
+1. Install backend dependencies.
+
+```bash
+npm install
+```
+
+2. Install frontend dependencies.
+
+```bash
+npm --prefix ./frontend_for_task_queue install
+```
+
+3. Create env files.
+
+```bash
+copy .env.example .env
+copy frontend_for_task_queue\.env.example frontend_for_task_queue\.env
+```
+
+4. Run API server.
+
+```bash
+npm run dev
+```
+
+5. Run worker in another terminal.
+
+```bash
+npm run worker
+```
+
+6. Run frontend in another terminal.
+
+```bash
+npm run frontend:dev
+```
 
 ## Environment Variables
 
-### Backend (`.env`)
+Backend `.env`:
 
-- `PORT`: API server port (default example: `3000`)
+- `PORT`: API port (default `3000`)
+- `PROCESSING_DELAY_MS`: worker processing delay per task in milliseconds (default `16000`)
+- `FAILURE_RATE`: simulated failure probability from `0` to `1` (default `0.3`)
 
-### Frontend (`frontend_for_task_queue/.env`)
+Frontend `frontend_for_task_queue/.env`:
 
-- `VITE_BACKEND_URL`: API base URL used by Axios (example: `http://localhost:3000`)
+- `VITE_BACKEND_URL`: backend API URL (default `http://localhost:3000`)
 
-## Run Locally
+## Worker Highlight: Simulated Processing With Delay
 
-Start API server (development mode):
+The core simulation is in `worker/worker.js` inside `processTask`.
 
-- `npm run dev`
+Flow:
 
-Start worker:
+1. Worker blocks on Redis queue with `BRPOP task_queue`.
+2. On task receive, status moves to `processing`.
+3. Worker writes `current_processing_task` in Redis for visibility.
+4. Worker waits using `setTimeout` with `PROCESSING_DELAY_MS`.
+5. Worker randomly fails with probability `FAILURE_RATE`.
+6. Success path pushes task to `completed_tasks`.
+7. Failure path pushes task to `failed_tasks`.
 
-- `npm run worker`
-
-Start frontend:
-
-- `npm run frontend:dev`
-
-## Production Commands
-
-- Backend server: `npm start`
-- Worker: `npm run worker:start`
-- Frontend build: `npm run frontend:build`
+This gives you a simple, controllable way to demonstrate async background work without any external job system.
 
 ## API Endpoints
 
-- `POST /tasks`: enqueue a new task
-- `GET /task/:id`: fetch a task by id (searches queued + completed lists)
-- `GET /NumberOfTasks`: queue/completed/total counts
+- `POST /tasks`: enqueue a task
+- `GET /task/:id`: get one task by id
+- `GET /NumberOfTasks`: queued/completed/failed totals
 - `GET /getTasks`: list queued tasks
 
-## Example Request
+### Create Task Example
 
-`POST /tasks`
+```http
+POST /tasks
+Content-Type: application/json
+```
 
 ```json
 {
@@ -88,8 +118,19 @@ Start frontend:
 }
 ```
 
-## Notes
+## Troubleshooting
 
-- Keep `.env` out of source control.
-- Commit lockfiles for deterministic installs.
-- Consider adding tests and CI workflows as the next step.
+If you see an error like `Unexpected non-whitespace character after JSON...`, your request body is invalid JSON (extra comma, stray character, or two JSON objects pasted together). The API now returns a clear `400` response for this case.
+
+## Production Commands
+
+- API: `npm start`
+- Worker: `npm run worker:start`
+- Frontend build: `npm run frontend:build`
+
+## GitHub Readiness Checklist
+
+- `.gitignore` excludes `node_modules`, logs, and `.env`
+- Root and frontend README files are present
+- `.env.example` files exist
+- Scripts are available for backend, worker, and frontend
