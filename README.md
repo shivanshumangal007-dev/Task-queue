@@ -1,30 +1,70 @@
 # Task Queue
 
-Redis-backed task queue with:
+A lightweight, production-minded task queue system built on Redis.
 
-- Express API for creating and querying tasks
-- Worker process for background processing
-- React + Vite dashboard for real-time visibility
+This project demonstrates a full async processing pipeline:
+
+- API receives and validates incoming tasks
+- Redis stores queued, completed, and failed jobs
+- Worker consumes tasks in the background using a blocking pop loop
+- React dashboard visualizes queue state in near real time
+
+If you want a clean starter to learn queue architecture or demo background job execution, this repo is designed for that.
+
+## Why This Project
+
+Most queue tutorials stop at "push and pop". This project goes further by modeling the operational behavior you care about:
+
+- task lifecycle states (`queued -> processing -> completed/failed`)
+- observable in-flight work (`current_processing_task` in Redis)
+- configurable processing delay to simulate real workloads
+- configurable failure rate to test unhappy paths
+
+## Feature Highlights
+
+- Express API for task submission and querying
+- Redis-backed queue and status lists
+- Worker that continuously processes tasks with `BRPOP`
+- Simulated latency and failure injection via env vars
+- Frontend dashboard for counts and task visibility
+- Clear JSON error responses for malformed request bodies
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[Client / Dashboard] -->|POST /tasks| API[Express API]
+    API -->|LPUSH| Q[(Redis: task_queue)]
+    W[Worker] -->|BRPOP| Q
+    W -->|SET| C[(Redis: current_processing_task)]
+    W -->|on success LPUSH| DONE[(Redis: completed_tasks)]
+    W -->|on failure LPUSH| FAIL[(Redis: failed_tasks)]
+    U -->|GET /NumberOfTasks, /task/:id, /getTasks| API
+    API -->|LRANGE / LLEN| DONE
+    API -->|LRANGE / LLEN| FAIL
+    API -->|LRANGE / LLEN| Q
+```
 
 ## Tech Stack
 
-- Backend: Node.js, Express, Redis
-- Worker: Node.js, Redis blocking pop loop
+- Backend: Node.js, Express
+- Data Layer: Redis
+- Worker Runtime: Node.js + Redis client
 - Frontend: React, Vite, Axios, Tailwind CSS
 
-## Project Structure
+## Repository Layout
 
-- `server.js`: API server entry point
-- `api/routes.js`: HTTP routes for task creation and lookup
-- `api/redisclient.js`: Redis queue and read helpers
-- `worker/worker.js`: task consumer and simulator
-- `frontend_for_task_queue/`: dashboard app
+- `server.js`: API bootstrap, middleware, and JSON parse handling
+- `api/routes.js`: task create/read endpoints
+- `api/redisclient.js`: Redis queue primitives and lookup helpers
+- `worker/worker.js`: task consumer, delay simulation, and fail/success routing
+- `frontend_for_task_queue/`: monitoring dashboard
 
 ## Prerequisites
 
 - Node.js 18+
 - npm 9+
-- Redis server (local or remote)
+- Redis server (local, Docker, or managed)
 
 ## Quick Start
 
@@ -40,67 +80,100 @@ npm install
 npm --prefix ./frontend_for_task_queue install
 ```
 
-3. Create env files.
+3. Create environment files.
+
+Windows:
 
 ```bash
 copy .env.example .env
 copy frontend_for_task_queue\.env.example frontend_for_task_queue\.env
 ```
 
-4. Run API server.
+macOS/Linux:
+
+```bash
+cp .env.example .env
+cp frontend_for_task_queue/.env.example frontend_for_task_queue/.env
+```
+
+4. Start API server.
 
 ```bash
 npm run dev
 ```
 
-5. Run worker in another terminal.
+5. Start worker in a second terminal.
 
 ```bash
 npm run worker
 ```
 
-6. Run frontend in another terminal.
+6. Start dashboard in a third terminal.
 
 ```bash
 npm run frontend:dev
 ```
 
-## Environment Variables
+## Environment Configuration
 
 Backend `.env`:
 
-- `PORT`: API port (default `3000`)
-- `PROCESSING_DELAY_MS`: worker processing delay per task in milliseconds (default `16000`)
-- `FAILURE_RATE`: simulated failure probability from `0` to `1` (default `0.3`)
+- `PORT`: API port (default: `3000`)
+- `PROCESSING_DELAY_MS`: simulated worker delay per task in ms (default: `16000`)
+- `FAILURE_RATE`: failure probability from `0` to `1` (default: `0.3`)
 
 Frontend `frontend_for_task_queue/.env`:
 
-- `VITE_BACKEND_URL`: backend API URL (default `http://localhost:3000`)
+- `VITE_BACKEND_URL`: backend base URL (default: `http://localhost:3000`)
 
-## Worker Highlight: Simulated Processing With Delay
+## Worker Deep Dive: How Task Simulation Works
 
-The core simulation is in `worker/worker.js` inside `processTask`.
+The worker logic lives in `worker/worker.js`, mainly inside `processTask`.
 
-Flow:
+Lifecycle for each task:
 
-1. Worker blocks on Redis queue with `BRPOP task_queue`.
-2. On task receive, status moves to `processing`.
-3. Worker writes `current_processing_task` in Redis for visibility.
-4. Worker waits using `setTimeout` with `PROCESSING_DELAY_MS`.
-5. Worker randomly fails with probability `FAILURE_RATE`.
-6. Success path pushes task to `completed_tasks`.
-7. Failure path pushes task to `failed_tasks`.
+1. `BRPOP task_queue` blocks until a task arrives.
+2. Task status is set to `processing`.
+3. Task is mirrored to `current_processing_task` so UIs can show active work.
+4. Worker waits for `PROCESSING_DELAY_MS` using `setTimeout`.
+5. Worker rolls random failure using `Math.random() < FAILURE_RATE`.
+6. Success path pushes task into `completed_tasks`.
+7. Failure path pushes task into `failed_tasks`.
+8. `current_processing_task` is cleared.
 
-This gives you a simple, controllable way to demonstrate async background work without any external job system.
+This design intentionally simulates real async pipelines where work takes time and can fail, letting you demo resilience and observability without external infrastructure.
 
-## API Endpoints
+## Simulation Profiles (Ready-to-Use)
 
-- `POST /tasks`: enqueue a task
-- `GET /task/:id`: get one task by id
-- `GET /NumberOfTasks`: queued/completed/failed totals
-- `GET /getTasks`: list queued tasks
+Fast local demo:
 
-### Create Task Example
+```env
+PROCESSING_DELAY_MS=2000
+FAILURE_RATE=0.1
+```
+
+Stress and failure demo:
+
+```env
+PROCESSING_DELAY_MS=5000
+FAILURE_RATE=0.6
+```
+
+Nearly deterministic success:
+
+```env
+PROCESSING_DELAY_MS=1000
+FAILURE_RATE=0
+```
+
+## API Reference
+
+- `POST /tasks` -> enqueue a new task
+- `GET /task/:id` -> fetch task details by id
+- `GET /NumberOfTasks` -> queued/completed/failed/total counts
+- `GET /getTasks` -> current queued task list
+
+### Request Example
 
 ```http
 POST /tasks
@@ -118,9 +191,24 @@ Content-Type: application/json
 }
 ```
 
-## Troubleshooting
+### Example Success Response
 
-If you see an error like `Unexpected non-whitespace character after JSON...`, your request body is invalid JSON (extra comma, stray character, or two JSON objects pasted together). The API now returns a clear `400` response for this case.
+```json
+{
+	"message": "Task created!",
+	"task": {
+		"task_id": "<uuid>",
+		"task_type": "send_email",
+		"payload": {
+			"to": "user@example.com",
+			"subject": "Welcome",
+			"body": "Hello from Task Queue"
+		},
+		"created_at": "2026-03-30T00:00:00.000Z",
+		"status": "queued"
+	}
+}
+```
 
 ## Production Commands
 
@@ -128,9 +216,31 @@ If you see an error like `Unexpected non-whitespace character after JSON...`, yo
 - Worker: `npm run worker:start`
 - Frontend build: `npm run frontend:build`
 
+## Troubleshooting
+
+`Unexpected non-whitespace character after JSON` while creating a task:
+
+- Cause: invalid JSON body (extra comma, stray characters, or two JSON objects merged)
+- Fix: validate JSON and ensure `Content-Type: application/json`
+- Behavior: API returns `400` with a clear error message
+
+Worker exits immediately:
+
+- confirm Redis is running and reachable
+- verify env values are numeric (`PROCESSING_DELAY_MS`, `FAILURE_RATE`)
+- run `npm run worker` after backend dependencies are installed
+
 ## GitHub Readiness Checklist
 
 - `.gitignore` excludes `node_modules`, logs, and `.env`
-- Root and frontend README files are present
-- `.env.example` files exist
-- Scripts are available for backend, worker, and frontend
+- env templates are committed in `.env.example` files
+- backend, worker, and frontend scripts are defined
+- setup and troubleshooting are documented
+- architecture and task lifecycle are explained
+
+## Next Improvements
+
+- add retry policy with exponential backoff for failed tasks
+- add dead-letter queue for permanent failures
+- add health/readiness endpoints
+- add automated tests + GitHub Actions CI
